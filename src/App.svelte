@@ -871,7 +871,7 @@
       </div>
     {/if}
     <div
-      class="xl:mx-[calc(-100vw_/_2_+_1280px_/_2_+_15px)] max-xl:w-full max-w-[1800px] gap-3 flex flex-wrap 2xl:px-12"
+      class="xl:mx-[calc(-100vw_/_2_+_1280px_/_2_+_15px)] w-full max-xl:w-full max-w-[1800px] gap-3 flex flex-wrap 2xl:px-12"
     >
       {#each animeData as anime}
         <!-- card div -->
