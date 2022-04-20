@@ -569,6 +569,15 @@ Ensure the default browser behavior of the `hidden` attribute.
 .min-w-\[48px\] {
   min-width: 48px;
 }
+.min-w-full {
+  min-width: 100%;
+}
+.min-w-\[250px\;\] {
+  min-width: 250px;;
+}
+.min-w-\[250px\] {
+  min-width: 250px;
+}
 .max-w-7xl {
   max-width: 80rem;
 }
@@ -913,6 +922,16 @@ Ensure the default browser behavior of the `hidden` attribute.
 .active\:bg-neutral-900:active {
   --tw-bg-opacity: 1;
   background-color: rgb(23 23 23 / var(--tw-bg-opacity));
+}
+@media (min-width: 640px) {
+
+  .sm\:overflow-hidden {
+    overflow: hidden;
+  }
+
+  .sm\:hover\:overflow-x-auto:hover {
+    overflow-x: auto;
+  }
 }
 @media (min-width: 768px) {
 

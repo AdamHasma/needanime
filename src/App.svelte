@@ -871,12 +871,12 @@
       </div>
     {/if}
     <div
-      class="xl:mx-[calc(-100vw_/_2_+_1280px_/_2_+_15px)] w-full max-xl:w-full max-w-[1800px] gap-3 flex flex-wrap 2xl:px-12"
+      class="xl:mx-[calc(-100vw_/_2_+_1280px_/_2_+_15px)] max-w-[1800px] gap-3 flex flex-wrap 2xl:px-12"
     >
       {#each animeData as anime}
         <!-- card div -->
         <div
-          class="flex h-fit w- 2xl:w-[calc(16.66667%_-_12px)] xl:w-[calc(25%_-_12px)] lg:w-[calc(33.33333%_-_12px)] w-[calc(50%_-_12px)] max-sm:w-full bg-neutral-800 flex-col border"
+          class="flex h-fit 2xl:w-[calc(16.66667%_-_12px)] xl:w-[calc(25%_-_12px)] lg:w-[calc(33.33333%_-_12px)] w-[calc(50%_-_12px)] max-sm:w-full bg-neutral-800 flex-col border min-w-[250px]"
         >
           <!-- top container -->
           <div class="flex items-center justify-center h-72 relative">
@@ -981,12 +981,10 @@
                 </h1>
                 <div
                   class="mt-1 w-full relative
-                  hover:overflow-x-auto overflow-hidden flex items-start justify-start mask-tags pr-14"
+                  sm:hover:overflow-x-auto sm:overflow-hidden flex items-start justify-start mask-tags pr-14"
                 >
                   {#each anime.genres as genre}
-                    <span
-                      class="mr-1 last:mr-0 text-xs leading-3 p-1  border font-bold"
-                    >
+                    <span class="mr-1 last:mr-0 text-xs leading-3 p-1 border">
                       {genre.name}
                     </span>
                   {/each}
