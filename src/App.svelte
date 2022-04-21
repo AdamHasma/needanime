@@ -1,6 +1,7 @@
 <script>
   import { onMount } from "svelte";
   import { Accordion, AccordionItem } from "svelte-simple-accordion";
+  import ContentLoader from "svelte-content-loader";
 
   // search clicked var
   let noResults = false;
@@ -316,6 +317,9 @@
     }
   };
 
+  // is loading variable
+  let isLoading = false;
+
   // fetch anime with jikan api
   const fetchAnime = async () => {
     const url = `https://api.jikan.moe/v4/anime?sfw=true${
@@ -329,15 +333,31 @@
     }&start_date=${fromDate}&order_by=${selectedSortBtn}&page=${currentPage}`;
     // create a try catch block to catch errors
     try {
+      isLoading = true;
       // create a variable to store the response
       const response = await fetch(url).then((res) => res.json());
       // set response to animeData
-      animeData = response.data;
+      // scroll to bottom of page if #results does not exist
+      if (!document.querySelector("#results")) {
+        window.scrollTo(0, document.body.scrollHeight);
+      }
+
+      setTimeout(() => {
+        isLoading = false;
+        animeData = response.data;
+      }, 980);
+
       paginationData = response.pagination;
       console.log(url);
       console.log(animeData);
       noResults = true;
-      //
+      // scroll to #results after 400ms
+      setTimeout(() => {
+        window.scrollTo({
+          top: document.getElementById("results").offsetTop,
+          behavior: "smooth",
+        });
+      }, 1000);
     } catch (error) {
       paginationData = [];
       noResults = true;
@@ -348,7 +368,7 @@
 </script>
 
 <div
-  class="p-6 text-neutral-200 bg-neutral-900 w-full h-full min-h-screen flex justify-center"
+  class="p-6 text-neutral-200 bg-neutral-900 w-full h-full min-h-screen flex justify-center flex-col items-center"
 >
   <div class="max-w-7xl w-full flex flex-col items-center">
     <header class="w-full">
@@ -356,7 +376,7 @@
         class=" flex justify-center flex-col items-center text-center mb-6 w-full"
       >
         <img width="600" src="/assets/logo.svg" alt="" />
-        <p class="mt-3 max-w-2xl">
+        <p class="mt-6 max-w-2xl">
           NeedAni.me makes it easy for you to find a new anime you want to watch
           by using <a
             class=" font-bold underline-offset-2 hover:underline"
@@ -368,7 +388,7 @@
       <!-- Divider -->
       <div class="absolute right-0 left-0 border-b border-neutral-50" />
     </header>
-    <div class="flex flex-col mt-6 w-full">
+    <div class="flex flex-col mt-12 w-full">
       <div class="flex-col w-full flex">
         <h2 class="text-3xl font-bold">
           <!-- if not selectedRating is not 0 -->
@@ -377,11 +397,11 @@
         </h2>
         <!-- button group from 1 to 10, with each scoreRating. All buttons in one line -->
         <div
-          class="mt-3 w-full flex flex-wrap outline outline-0 outline-neutral-50  justify-stretch"
+          class="mt-6 w-full flex flex-wrap outline outline-0 outline-neutral-50 max-sm:gap-2 justify-stretch"
         >
           {#each scoreRating as score}
             <button
-              class="active:bg-neutral-900 min-w-[48px]  flex  items-center justify-center px-5 py-3 outline text-neutral-100  outline-2 outline hover:bg-neutral-700 hover:text-neutral-100 flex-grow {score >=
+              class="active:bg-neutral-900 min-w-[48px]  flex  items-center justify-center px-5 py-3 outline text-neutral-100  outline-2 hover:bg-neutral-700 hover:text-neutral-100 flex-grow {score >=
                 selectedRating && selectedRating !== 0
                 ? ' bg-neutral-800'
                 : ' bg-neutral-500'}"
@@ -394,11 +414,11 @@
           {/each}
         </div>
       </div>
-      <div class="flex-col w-full flex mt-6">
+      <div class="flex-col w-full flex mt-12">
         <h2 class="text-3xl font-bold">What are you interested in?</h2>
-        <div class="mt-3 w-full flex">
+        <div class="mt-6 w-full flex">
           <div
-            class="w-full gap-6 grid grid-flow-col auto-cols-fr max-sm:flex max-sm:flex-col max-sm:gap-3"
+            class="w-full gap-6 grid grid-flow-col auto-cols-fr max-sm:flex max-sm:flex-col max-sm:gap-2"
           >
             <div class="flex flex-col items-center">
               <!-- helper text -->
@@ -411,7 +431,7 @@
                 <strong>include</strong>
               </p>
               <button
-                class="active:bg-neutral-900 mt-2 flex  items-baseline justify-center px-5 py-3 text-neutral-100 w-full outline-2 outline hover:bg-neutral-700 hover:text-neutral-100 flex-grow"
+                class="active:bg-neutral-900 mt-4 flex  items-baseline justify-center px-5 py-3 text-neutral-100 w-full outline-2 outline hover:bg-neutral-700 hover:text-neutral-100 flex-grow"
                 on:click={() => {
                   toggleIncludeBtn();
                   console.log("Inlcuded Genre", selectedGenres);
@@ -422,7 +442,7 @@
             </div>
 
             <!-- exclude all button -->
-            <div class="flex flex-col items-center">
+            <div class="max-sm:mt-3 flex flex-col items-center">
               <!-- helper text -->
               <p class="text-neutral-200">
                 <span
@@ -433,7 +453,7 @@
                 <strong>exclude</strong>
               </p>
               <button
-                class="active:bg-neutral-900 mt-2 flex  items-baseline justify-center px-5 py-3 text-neutral-100 w-full outline-2 outline hover:bg-neutral-700 hover:text-neutral-100 flex-grow"
+                class="active:bg-neutral-900 mt-4 flex  items-baseline justify-center px-5 py-3 text-neutral-100 w-full outline-2 outline hover:bg-neutral-700 hover:text-neutral-100 flex-grow"
                 on:click={() => {
                   toggleExcludeBtn();
                   console.log("Ecluded Genre", selectedExcludeGenres);
@@ -448,7 +468,7 @@
 
         {#each genres as genreGroup}
           <div
-            class="mt-3 lg:grid-flow-col grid-container grid lg:grid lg:auto-cols-fr "
+            class="mt-6 max-sm:gap-2 lg:grid-flow-col grid-container grid lg:grid lg:auto-cols-fr "
           >
             <!-- each genreGroup as genre and id -->
             {#each genreGroup as genre}
@@ -484,7 +504,7 @@
                       class="active:bg-neutral-900 items-center flex justify-center absolute top-0 bottom-0 right-0 text-neutral-100 w-1/2 hover:text-neutral-100 {selectedGenres.includes(
                         id
                       )
-                        ? ' hover:bg-neutral-100/50'
+                        ? ' bg-neutral-100/10 hover:bg-neutral-100/50'
                         : ' hover:bg-green-500/50'}"
                       on:click={() => {
                         addGenre(id);
@@ -492,14 +512,16 @@
                       }}
                     >
                       <!-- show + if it is not selected otherwise show a cross -->
-                      {selectedGenres.includes(id) ? "×" : "+"}
+                      <span class="font-bold">
+                        {selectedGenres.includes(id) ? "×" : "+"}
+                      </span>
                     </button>
                     <!-- left half of the div, create a button which indicates and add button -->
                     <button
                       class="active:bg-neutral-900 items-center flex justify-center absolute top-0 bottom-0 left-0 text-neutral-100 w-1/2 hover:text-neutral-100 {selectedExcludeGenres.includes(
                         id
                       )
-                        ? ' hover:bg-neutral-100/50'
+                        ? ' bg-neutral-100/10 hover:bg-neutral-100/50'
                         : ' hover:bg-red-500/50'}"
                       on:click={() => {
                         addExcludeGenre(id);
@@ -507,7 +529,9 @@
                       }}
                     >
                       <!-- show + if it is not selected otherwise show a cross -->
-                      {selectedExcludeGenres.includes(id) ? "×" : "−"}
+                      <span class="font-bold">
+                        {selectedExcludeGenres.includes(id) ? "×" : "−"}
+                      </span>
                     </button>
                   </div>
                 </div>
@@ -516,10 +540,10 @@
           </div>
         {/each}
       </div>
-      <div class="flex-col w-full flex mt-6">
+      <div class="flex-col w-full flex mt-12">
         <h2 class="text-3xl font-bold">Type of Anime</h2>
         <div
-          class="mt-3 md:grid-flow-col grid-container md:grid md:auto-cols-fr "
+          class="mt-6 md:grid-flow-col grid-container md:grid md:auto-cols-fr max-sm:gap-2"
         >
           {#each animeType as type}
             <button
@@ -538,16 +562,16 @@
           {/each}
         </div>
       </div>
-      <div class="flex-col w-full flex mt-6">
+      <div class="flex-col w-full flex mt-12">
         <h2 class="text-3xl font-bold">Release Date</h2>
-        <div class="mt-3 md:grid-flow-col md:grid md:auto-cols-fr ">
+        <div class="mt-6 md:grid-flow-col md:grid md:auto-cols-fr ">
           <!-- "From date as number input to change year -->
           <div
             class="grid auto-cols-fr grid-flow-col text-center relative text-neutral-100 w-full "
           >
             <!-- decrease btn -->
             <div class="flex flex-col">
-              <div class="grid auto-cols-fr grid-flow-col">
+              <div class="grid max-sm:gap-2 auto-cols-fr grid-flow-col">
                 <!-- fromDateNums as buttons like the season buttons but with setDateYear -->
                 {#each fromDateNums as num}
                   <button
@@ -561,7 +585,7 @@
                   </button>
                 {/each}
               </div>
-              <div class="grid auto-cols-fr grid-flow-col mt-2">
+              <div class="grid max-sm:gap-2 auto-cols-fr grid-flow-col mt-4">
                 <button
                   title="Decrease year"
                   class="active:bg-neutral-900 px-3 outline-2 outline h-full justify-center hover:bg-neutral-700  "
@@ -592,7 +616,7 @@
                 </button>
               </div>
               <!-- season button with emoji as text and setDateSeason -->
-              <div class="grid auto-cols-fr grid-flow-col">
+              <div class="grid max-sm:gap-2 mt-2 auto-cols-fr grid-flow-col">
                 <button
                   title="set season to winter"
                   class="flex items-center justify-center p-2 outline-2 outline h-full hover:bg-neutral-700 {fromDate.split(
@@ -698,7 +722,7 @@
               >
                 Set on today
               </button>
-              <div class="grid auto-cols-fr grid-flow-col mb-1 mt-3">
+              <div class="grid auto-cols-fr grid-flow-col mb-1 mt-6">
                 <button
                   title="Decrease year"
                   class="active:bg-neutral-900 pt-[2px] pb-[6px] px-3 outline-2 outline  h-full justify-center hover:bg-neutral-700  "
@@ -802,9 +826,9 @@
         </div>
       </div>
       <!-- set status buttons -->
-      <h2 class="mt-6 text-3xl font-bold">Status</h2>
+      <h2 class="mt-12 text-3xl font-bold">Status</h2>
       <div
-        class="mt-3 md:grid-flow-col grid-container md:grid md:auto-cols-fr "
+        class="mt-6 md:grid-flow-col grid-container md:grid md:auto-cols-fr max-sm:gap-2 "
       >
         {#each status as { title, value }}
           <button
@@ -822,10 +846,10 @@
         {/each}
       </div>
 
-      <h2 class="text-3xl font-bold mt-6">Sort By</h2>
+      <h2 class="text-3xl font-bold mt-12">Sort By</h2>
       <!-- sort buttons -->
       <div
-        class="mt-3 md:grid-flow-col grid-container md:grid md:auto-cols-fr "
+        class="mt-6 md:grid-flow-col grid-container md:grid md:auto-cols-fr max-sm:gap-2 "
       >
         {#each sortBtns as sortBtn}
           <button
@@ -844,7 +868,7 @@
         {/each}
       </div>
       <!-- "Show me!" fetch Button -->
-      <div class="flex mt-12 justify-center items-center" id="results">
+      <div class="flex mt-24 mt- justify-center items-center" id="results">
         <button
           title="fetch anime"
           class="transition-all duration-300 font-bold text-lg px-5 py-3 text-neutral-100 hover:shadow-[0px_0px_37px_1px_rgba(243,1,117,1)] shadow-[0px_0px_27px_1px_rgba(243,1,117,0.76)] bg-[#f30175]"
@@ -857,88 +881,225 @@
             });
           }}
         >
-          Show me!
+          <svg
+            class={isLoading ? "inline-block" : "hidden"}
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+          >
+            <g fill="#fafafa">
+              <g class="nc-loop-dots-24-icon-f">
+                <circle cx="4" cy="12" fill="#fafafa" r="3" />
+                <circle cx="12" cy="12" r="3" />
+                <circle cx="20" cy="12" fill="#fafafa" r="3" />
+              </g>
+              <style>
+                .nc-loop-dots-24-icon-f {
+                  --animation-duration: 1s;
+                }
+                .nc-loop-dots-24-icon-f * {
+                  opacity: 0.4;
+                  transform: scale(0.7);
+                }
+                .nc-loop-dots-24-icon-f :nth-child(1),
+                .nc-loop-dots-24-icon-f :nth-child(3) {
+                  animation: nc-loop-dots-anim-2b var(--animation-duration)
+                    infinite linear;
+                }
+                .nc-loop-dots-24-icon-f :nth-child(1) {
+                  transform-origin: 4px 12px;
+                }
+                .nc-loop-dots-24-icon-f :nth-child(2) {
+                  animation: nc-loop-dots-anim-1b
+                    calc(var(--animation-duration) / 2) infinite linear;
+                  animation-delay: calc(var(--animation-duration) / 4);
+                  transform-origin: 12px 12px;
+                }
+                .nc-loop-dots-24-icon-f :nth-child(3) {
+                  animation-delay: calc(var(--animation-duration) / 2);
+                  transform-origin: 20px 12px;
+                }
+                @keyframes nc-loop-dots-anim-1b {
+                  0%,
+                  100% {
+                    opacity: 0.4;
+                    transform: scale(0.7);
+                  }
+                  50% {
+                    opacity: 1;
+                    transform: scale(1);
+                  }
+                }
+                @keyframes nc-loop-dots-anim-2b {
+                  0%,
+                  100%,
+                  66% {
+                    opacity: 0.4;
+                    transform: scale(0.7);
+                  }
+                  33% {
+                    opacity: 1;
+                    transform: scale(1);
+                  }
+                }
+              </style>
+            </g>
+          </svg>
+          {!isLoading ? "Show me!" : ""}
         </button>
       </div>
     </div>
     <!-- card wrapper -->
     {#if animeData.length > 0}
-      <h2 class="mt-6 mb-3 text-2xl font-bold">Results</h2>
+      <h2 class="mt-12 mb-3 text-2xl font-bold">Results</h2>
     {/if}
     {#if animeData.length === 0 && noResults}
-      <div class="mt-6 flex justify-center items-center">
+      <div class="mt-12 flex justify-center items-center">
         <h2 class="text-2xl font-bold">No results found</h2>
       </div>
     {/if}
-    <div
-      class="xl:mx-[calc(-100vw_/_2_+_1280px_/_2_+_15px)] max-w-[1800px] gap-3 flex flex-wrap 2xl:px-12"
-    >
-      {#each animeData as anime}
-        <!-- card div -->
-        <div
-          class="flex h-fit 2xl:w-[calc(16.66667%_-_12px)] xl:w-[calc(25%_-_12px)] lg:w-[calc(33.33333%_-_12px)] w-[calc(50%_-_12px)] max-sm:w-full bg-neutral-800 flex-col border min-w-[250px]"
-        >
-          <!-- top container -->
-          <div class="flex items-center justify-center h-72 relative">
-            <!-- div box with position absolute and background gradient from top(black) to bottom(transparent) and a arrow in the center -->
-            <img
-              class="h-full w-full object-cover"
-              src={anime.images.jpg.large_image_url}
-              alt={anime.title}
-            />
-            <!-- title and tags container starting from bottom with absolute position and dark background gradient -->
-            <div
-              class="absolute top-0  w-full flex justify-center flex-col leading-none"
-            >
-              <div class="hidden flex flex-wrap w-full bg-zinc-900">
-                <div class="flex items-start justify-start border w-1/2 p-2">
-                  <img src="/assets/calendar.svg" alt="" class="mr-2" />
-                  <!-- get first whole word with splice method -->
-                  {#if anime.year !== null}
-                    {anime.year}
-                  {:else}
-                    {anime.aired.from.split("-")[0]}
-                  {/if}
-                </div>
-                <div
-                  class="flex items-start justify-start border border-right-0 w-1/2 p-2"
-                >
-                  <img
-                    src="/assets/cinema.svg"
-                    alt=""
-                    class="mr-2"
-                  />{anime.type}
-                </div>
-                <div class="flex items-start justify-start border w-1/2 p-2">
-                  <img src="/assets/statistics.svg" alt="" class="mr-2" />
-                  {#if anime.score !== null}
-                    {anime.score}
-                  {:else}
-                    not yet given
-                  {/if}
-                </div>
-                <div
-                  class="flex items-start justify-start border border-r-0 w-1/2 p-2"
-                >
-                  <img src="/assets/multiple.svg" alt="" class="mr-2" />
-                  {#if anime.popularity !== 0}
-                    {anime.popularity}.
-                  {:else}
-                    not placed yet
-                  {/if}
-                </div>
+    <!-- {#if isLoading}
+      <div class="flex justify-center h-[500px] items-center">
+        <ContentLoader>
+          <rect x="0" y="0" rx="0" ry="0" width="350" height="500" />
+        </ContentLoader>
+      </div>
+    {/if} -->
+  </div>
+  <div
+    class="max-w-[1800px] card-wrapper gap-4 flex justify-center flex-wrap 2xl:px-3 w-full"
+  >
+    {#each animeData as anime}
+      <!-- card div -->
+      <div
+        class="flex card h-fit 2xl:w-[calc(16.66667%_-_16px)] xl:w-[calc(25%_-_16px)] lg:w-[calc(33.33333%_-_16px)] w-[calc(50%_-_16px)] max-sm:w-full bg-neutral-800 flex-col border min-w-[250px]"
+      >
+        <!-- top container -->
+        <div class="flex items-center justify-center h-72 relative">
+          <!-- div box with position absolute and background gradient from top(black) to bottom(transparent) and a arrow in the center -->
+          <img
+            class="h-full w-full object-cover"
+            src={anime.images.jpg.large_image_url}
+            alt={anime.title}
+          />
+          <!-- title and tags container starting from bottom with absolute position and dark background gradient -->
+          <div
+            class="absolute top-0  w-full flex justify-center flex-col leading-none"
+          >
+            <div class="hidden flex flex-wrap w-full bg-zinc-900">
+              <div class="flex items-start justify-start border w-1/2 p-2">
+                <img src="/assets/calendar.svg" alt="" class="mr-2" />
+                <!-- get first whole word with splice method -->
+                {#if anime.year !== null}
+                  {anime.year}
+                {:else}
+                  {anime.aired.from.split("-")[0]}
+                {/if}
               </div>
               <div
-                class="w-full p-3 cursor-pointer transition-all duration-300 hover:bg-zinc-800 flex justify-center bg-gradient-to-t from-neutral-900/0 rotate to-neutral-900"
+                class="flex items-start justify-start border border-right-0 w-1/2 p-2"
+              >
+                <img src="/assets/cinema.svg" alt="" class="mr-2" />{anime.type}
+              </div>
+              <div class="flex items-start justify-start border w-1/2 p-2">
+                <img src="/assets/statistics.svg" alt="" class="mr-2" />
+                {#if anime.score !== null}
+                  {anime.score}
+                {:else}
+                  not yet given
+                {/if}
+              </div>
+              <div
+                class="flex items-start justify-start border border-r-0 w-1/2 p-2"
+              >
+                <img src="/assets/multiple.svg" alt="" class="mr-2" />
+                {#if anime.popularity !== 0}
+                  {anime.popularity}.
+                {:else}
+                  not placed yet
+                {/if}
+              </div>
+            </div>
+            <div
+              class="w-full p-3 cursor-pointer transition-all duration-300 hover:bg-zinc-800 flex justify-center bg-gradient-to-t from-neutral-900/0 rotate to-neutral-900"
+              on:click={(e) => {
+                e.target.previousElementSibling.classList.toggle("hidden");
+                e.target
+                  .querySelector("svg")
+                  .classList.toggle("rotate-[270deg]");
+              }}
+            >
+              <svg
+                class="transition-all rotate-90 duration-300 pointer-events-none"
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+              >
+                <g
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  fill="none"
+                  stroke="#f5f5f5"
+                >
+                  <polyline
+                    points="10,8 14,12 10,16 "
+                    transform="translate(0, 0)"
+                  />
+                </g>
+              </svg>
+            </div>
+          </div>
+          <div
+            class="absolute bottom-0 left-0 right-0 w-full h-3/5 bg-gradient-to-b from-neutral-900/0 to-neutral-900"
+          >
+            <div
+              class="flex p-3 pr-[1px] flex-col items-start justify-end h-full"
+            >
+              <!-- <div
+                  class="absolute h-[22px] bottom-3 right-[1px] w-1/4 pointer-events-none bg-gradient-to-l from-neutral-900
+                to-neutral-900/0 z-10"
+                /> -->
+              <h1 class="text-neutral-100 text-xl text-left font-bold pr-3">
+                <!-- <span
+                    class={anime.status === "Finished Airing"
+                      ? "text-green-500"
+                      : ""}
+                  >
+                    ‒
+                  </span> -->
+                {anime.title}
+              </h1>
+              <div
+                class="mt-2 w-full relative
+                  sm:hover:overflow-x-auto sm:overflow-hidden flex items-start justify-start mask-tags pr-14"
+              >
+                {#each anime.genres as genre}
+                  <span class="mr-1 last:mr-0 text-xs leading-3 p-1 border">
+                    {genre.name}
+                  </span>
+                {/each}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bg-neutral-800">
+          <Accordion>
+            <AccordionItem>
+              <div
+                slot="title"
+                class="p-3 pt-2 flex items-center  cursor-pointer hover:bg-neutral-700 active:bg-neutral-900"
                 on:click={(e) => {
-                  e.target.previousElementSibling.classList.toggle("hidden");
                   e.target
-                    .querySelector("svg")
-                    .classList.toggle("rotate-[270deg]");
+                    .querySelector(".arrow")
+                    .classList.toggle("rotate-90");
                 }}
               >
+                <h2 class="text-md pointer-events-none">Synposis</h2>
                 <svg
-                  class="transition-all rotate-90 duration-300 pointer-events-none"
+                  class="arrow ml-1 relative top-[2px] transition-all duration-300 pointer-events-none"
                   xmlns="http://www.w3.org/2000/svg"
                   width="24"
                   height="24"
@@ -958,173 +1119,104 @@
                   </g>
                 </svg>
               </div>
-            </div>
-            <div
-              class="absolute bottom-0 left-0 right-0 w-full h-3/5 bg-gradient-to-b from-neutral-900/0 to-neutral-900"
-            >
-              <div
-                class="flex p-3 pr-[1px] flex-col items-start justify-end h-full"
-              >
-                <!-- <div
-                  class="absolute h-[22px] bottom-3 right-[1px] w-1/4 pointer-events-none bg-gradient-to-l from-neutral-900
-                to-neutral-900/0 z-10"
-                /> -->
-                <h1 class="text-neutral-100 text-xl text-left font-bold pr-3">
-                  <!-- <span
-                    class={anime.status === "Finished Airing"
-                      ? "text-green-500"
-                      : ""}
-                  >
-                    ‒
-                  </span> -->
-                  {anime.title}
-                </h1>
-                <div
-                  class="mt-1 w-full relative
-                  sm:hover:overflow-x-auto sm:overflow-hidden flex items-start justify-start mask-tags pr-14"
-                >
-                  {#each anime.genres as genre}
-                    <span class="mr-1 last:mr-0 text-xs leading-3 p-1 border">
-                      {genre.name}
-                    </span>
-                  {/each}
-                </div>
+              <div slot="content">
+                <p class="px-3 mt-6 clamp text-ellipsis pb-3">
+                  <!-- limit 50 words on anime.synopsis -->
+                  {#if anime.synopsis}
+                    {anime.synopsis.split(" ").slice(0, 50).join(" ")}...
+                  {/if}
+                  {#if !anime.synopsis}
+                    No synopsis available
+                  {/if}
+                </p>
               </div>
-            </div>
-          </div>
-          <div class="bg-neutral-800">
-            <Accordion>
-              <AccordionItem>
-                <div
-                  slot="title"
-                  class="p-3 pt-2 flex items-center  cursor-pointer hover:bg-neutral-700 active:bg-neutral-900"
-                  on:click={(e) => {
-                    e.target
-                      .querySelector(".arrow")
-                      .classList.toggle("rotate-90");
-                  }}
-                >
-                  <h2 class="text-md pointer-events-none">Synposis</h2>
-                  <svg
-                    class="arrow ml-1 relative top-[2px] transition-all duration-300 pointer-events-none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                  >
-                    <g
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      fill="none"
-                      stroke="#f5f5f5"
-                    >
-                      <polyline
-                        points="10,8 14,12 10,16 "
-                        transform="translate(0, 0)"
-                      />
-                    </g>
-                  </svg>
-                </div>
-                <div slot="content">
-                  <p class="px-3 mt-3 clamp text-ellipsis pb-3">
-                    <!-- limit 50 words on anime.synopsis -->
-                    {#if anime.synopsis}
-                      {anime.synopsis.split(" ").slice(0, 50).join(" ")}...
-                    {/if}
-                    {#if !anime.synopsis}
-                      No synopsis available
-                    {/if}
-                  </p>
-                </div>
-              </AccordionItem>
-            </Accordion>
-          </div>
-          <!-- button like anime type button -->
-          <div class="flex justify-center items-center">
-            <a href={anime.url} target="_blank" class="w-full">
-              <button
-                title="For more information click here"
-                class="flex justify-center items-center transition-all duration-300 bg-neutral-900 w-full py-3 text-neutral-100 border-t hover:bg-neutral-700"
+            </AccordionItem>
+          </Accordion>
+        </div>
+        <!-- button like anime type button -->
+        <div class="flex justify-center items-center">
+          <a href={anime.url} target="_blank" class="w-full">
+            <button
+              title="For more information click here"
+              class="flex justify-center items-center transition-all duration-300 bg-neutral-900 w-full py-3 text-neutral-100 border-t hover:bg-neutral-700"
+            >
+              Go to MyAnimeList
+              <svg
+                class="ml-2"
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="17"
+                viewBox="0 0 16 17"
+                fill="none"
               >
-                Go to MyAnimeList
-                <svg
-                  class="ml-2"
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="17"
-                  viewBox="0 0 16 17"
-                  fill="none"
-                >
-                  <path
-                    d="M14 3L5.99998 11"
-                    stroke="white"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
-                  <path
-                    d="M8.49998 3H14V8.5"
-                    stroke="white"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
-                  <path
-                    d="M11 11V14H3V6H6.5"
-                    stroke="white"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
-                </svg>
-              </button>
-            </a>
-          </div>
+                <path
+                  d="M14 3L5.99998 11"
+                  stroke="white"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M8.49998 3H14V8.5"
+                  stroke="white"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M11 11V14H3V6H6.5"
+                  stroke="white"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+          </a>
         </div>
-      {/each}
-      {#if paginationData.has_next_page}
-        <div class="flex justify-center items-center w-full">
-          <!-- previous page button -->
-          <button
-            disabled={currentPage === 1 ? "true" : undefined}
-            class="w-full py-3 text-neutral-100 h-full flex bg-neutral-800
+      </div>
+    {/each}
+    {#if paginationData.has_next_page}
+      <div class="flex justify-center items-center w-full">
+        <!-- previous page button -->
+        <button
+          disabled={currentPage === 1 ? "true" : undefined}
+          class="w-full py-3 text-neutral-100 h-full flex bg-neutral-800
             justify-center items-center hover:bg-neutral-700"
-            on:click={() => {
-              // decrease current page number by 1 and fetch anime
-              currentPage--;
-              fetchAnime();
-              // scroll to #results
-              window.scrollTo({
-                top: document.querySelector("#results").offsetTop,
-                behavior: "smooth",
-              });
-            }}
-          >
-            Previous Page
-          </button>
+          on:click={() => {
+            // decrease current page number by 1 and fetch anime
+            currentPage--;
+            fetchAnime();
+            // scroll to #results
+            window.scrollTo({
+              top: document.querySelector("#results").offsetTop,
+              behavior: "smooth",
+            });
+          }}
+        >
+          Previous Page
+        </button>
 
-          <!-- current page number -->
-          <p class="font-bold mx-3 whitespace-nowrap">
-            Current Page: {paginationData.current_page}
-          </p>
+        <!-- current page number -->
+        <p class="font-bold mx-3 whitespace-nowrap">
+          Current Page: {paginationData.current_page}
+        </p>
 
-          <!-- next page button -->
-          <button
-            class="w-full py-3 bg-neutral-800 text-neutral-100 h-full flex justify-center items-center hover:bg-neutral-700"
-            on:click={() => {
-              // increment currentPage by 1 and fetch anime
-              currentPage++;
-              fetchAnime();
-              // scroll to #results
-              window.scrollTo({
-                top: document.querySelector("#results").offsetTop,
-                behavior: "smooth",
-              });
-            }}
-          >
-            Next page
-          </button>
-        </div>
-      {/if}
-    </div>
+        <!-- next page button -->
+        <button
+          class="w-full py-3 bg-neutral-800 text-neutral-100 h-full flex justify-center items-center hover:bg-neutral-700"
+          on:click={() => {
+            // increment currentPage by 1 and fetch anime
+            currentPage++;
+            fetchAnime();
+            // scroll to #results
+            window.scrollTo({
+              top: document.querySelector("#results").offsetTop,
+              behavior: "smooth",
+            });
+          }}
+        >
+          Next page
+        </button>
+      </div>
+    {/if}
   </div>
 </div>
 
@@ -1139,12 +1231,23 @@
     white-space: nowrap;
   }
 
-  .grid-cards {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    grid-column-gap: 20px;
-    grid-row-gap: 20px;
+  .card-wrapper {
+    opacity: 1;
   }
+  .card-wrapper:hover > .card {
+    opacity: 0.7;
+  }
+  .card {
+    transition: all 0.3s ease-in-out;
+  }
+  .card-wrapper:hover > .card:hover {
+    opacity: 1;
+    transform: scale(1.1);
+    position: relative;
+    z-index: 20;
+    box-shadow: black 0px 10px 30px;
+  }
+
   input::-webkit-outer-spin-button,
   input::-webkit-inner-spin-button {
     -webkit-appearance: none;
