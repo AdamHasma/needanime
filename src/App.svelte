@@ -158,15 +158,16 @@
   const animeType = ["TV", "Movie", "OVA", "ONA"];
 
   // selected anime type
-  let selectedAnimeType = ["tv", "movie", "ova", "ona"];
+  let selectedAnimeType = "tv";
 
   // set anime type to selected anime type if it doesn't already exist, if it does, remove it
   const setAnimeType = (type) => {
-    if (!selectedAnimeType.includes(type)) {
-      selectedAnimeType = [...selectedAnimeType, type];
-    } else {
-      selectedAnimeType = selectedAnimeType.filter((item) => item !== type);
-    }
+    // if (!selectedAnimeType.includes(type)) {
+    //   selectedAnimeType = [...selectedAnimeType, type];
+    // } else {
+    //   selectedAnimeType = selectedAnimeType.filter((item) => item !== type);
+    // }
+    selectedAnimeType = type;
   };
 
   // from date
@@ -328,9 +329,12 @@
       selectedExcludeGenres.length > 0
         ? `&genres_exclude=${selectedExcludeGenres}`
         : ""
-    }&type=${selectedAnimeType}&status=${
-      status ? selectedStatus : ""
-    }&start_date=${fromDate}&order_by=${selectedSortBtn}&page=${currentPage}`;
+    }&type=${selectedAnimeType}${
+      selectedStatus ? `&status=${selectedStatus}` : ""
+    }&start_date=${fromDate}${
+      selectedSortBtn ? `&order_by=${selectedSortBtn}` : ""
+    }&page=${currentPage}`;
+    console.log(status);
     // create a try catch block to catch errors
     try {
       isLoading = true;
@@ -401,7 +405,7 @@
         >
           {#each scoreRating as score}
             <button
-              class="active:bg-neutral-900 min-w-[48px]  flex  items-center justify-center px-5 py-3 hover:bg-neutral-700  flex-grow {score >=
+              class="active:bg-neutral-900 min-w-[48px] flex items-center justify-center px-5 py-3 hover:bg-neutral-700 flex-grow {score >=
                 selectedRating && selectedRating !== 0
                 ? ' bg-neutral-800 outline outline-1'
                 : ' bg-neutral-500'}"
@@ -431,7 +435,7 @@
                 <strong>include</strong>
               </p>
               <button
-                class="active:bg-neutral-900 mt-4 flex  items-baseline justify-center px-5 py-3  rounded hover:bg-neutral-800 bg-neutral-700  flex-grow"
+                class="active:bg-neutral-900 mt-4 flex items-baseline justify-center px-5 py-3 rounded hover:bg-neutral-800 bg-neutral-700 flex-grow"
                 on:click={() => {
                   toggleIncludeBtn();
                   console.log("Inlcuded Genre", selectedGenres);
@@ -453,7 +457,7 @@
                 <strong>exclude</strong>
               </p>
               <button
-                class="active:bg-neutral-900 mt-4 flex  items-baseline justify-center px-5 py-3 rounded hover:bg-neutral-800 bg-neutral-700  flex-grow"
+                class="active:bg-neutral-900 mt-4 flex items-baseline justify-center px-5 py-3 rounded hover:bg-neutral-800 bg-neutral-700 flex-grow"
                 on:click={() => {
                   toggleExcludeBtn();
                   console.log("Ecluded Genre", selectedExcludeGenres);
@@ -468,7 +472,7 @@
 
         {#each genres as genreGroup}
           <div
-            class="mt-6 max-sm:gap-2 gap-1 lg:grid-flow-col grid-container grid lg:grid lg:auto-cols-fr "
+            class="mt-6 max-sm:gap-2 gap-1 lg:grid-flow-col grid-container grid lg:grid lg:auto-cols-fr"
           >
             <!-- each genreGroup as genre and id -->
             {#each genreGroup as genre}
@@ -476,7 +480,7 @@
                 <div class="relative flex flex-row items-center">
                   <div
                     bind:this={genreButton}
-                    class="relative genreButton rounded text-center  active:bg-neutral-900 px-5 py-3 w-full hover:bg-neutral-700 {selectedGenres.includes(
+                    class="relative genreButton rounded text-center active:bg-neutral-900 px-5 py-3 w-full hover:bg-neutral-700 {selectedGenres.includes(
                       id
                     ) || selectedExcludeGenres.includes(id)
                       ? ' bg-neutral-800'
@@ -508,7 +512,7 @@
                     {name.replace(/_/g, " ")}
                     <!-- right half of the div, create a button which indicates and add button -->
                     <button
-                      class="active:bg-neutral-900 items-center flex justify-center absolute rounded top-0 bottom-0 right-0  w-1/2  {selectedGenres.includes(
+                      class="active:bg-neutral-900 items-center flex justify-center absolute rounded top-0 bottom-0 right-0 w-1/2 {selectedGenres.includes(
                         id
                       )
                         ? ' bg-green-500/10 hover:bg-neutral-800/80'
@@ -525,7 +529,7 @@
                     </button>
                     <!-- left half of the div, create a button which indicates and add button -->
                     <button
-                      class="active:bg-neutral-900 items-center flex justify-center absolute rounded top-0 bottom-0 left-0  w-1/2  {selectedExcludeGenres.includes(
+                      class="active:bg-neutral-900 items-center flex justify-center absolute rounded top-0 bottom-0 left-0 w-1/2 {selectedExcludeGenres.includes(
                         id
                       )
                         ? ' bg-red-500/10 hover:bg-neutral-800/80'
@@ -554,7 +558,7 @@
         >
           {#each animeType as type}
             <button
-              class=" active:bg-neutral-900 px-5 py-3  w-full   hover:bg-neutral-700   {selectedAnimeType.includes(
+              class=" active:bg-neutral-900 px-5 py-3 w-full hover:bg-neutral-700 {selectedAnimeType.includes(
                 type.toLowerCase()
               )
                 ? ' bg-neutral-800 outline outline-1'
@@ -571,10 +575,10 @@
       </div>
       <div class="flex-col w-full flex mt-12">
         <h2 class="text-3xl font-bold">Release Date</h2>
-        <div class="mt-6 md:grid-flow-col md:grid md:auto-cols-fr ">
+        <div class="mt-6 md:grid-flow-col md:grid md:auto-cols-fr">
           <!-- "From date as number input to change year -->
           <div
-            class="grid auto-cols-fr grid-flow-col text-center relative  w-full "
+            class="grid auto-cols-fr grid-flow-col text-center relative w-full"
           >
             <!-- decrease btn -->
             <div class="flex flex-col">
@@ -582,7 +586,7 @@
                 <!-- fromDateNums as buttons like the season buttons but with setDateYear -->
                 {#each fromDateNums as num}
                   <button
-                    class=" active:bg-neutral-900 p-2  w-full   hover:bg-neutral-800 bg-neutral-700"
+                    class=" active:bg-neutral-900 p-2 w-full hover:bg-neutral-800 bg-neutral-700"
                     on:click={() => {
                       increaseDate("from", num);
                       console.log(fromDate, toDate);
@@ -597,7 +601,7 @@
               >
                 <button
                   title="Decrease year"
-                  class="active:bg-neutral-900 px-3 bg-neutral-700 h-full justify-center hover:bg-neutral-800 font-bold "
+                  class="active:bg-neutral-900 px-3 bg-neutral-700 h-full justify-center hover:bg-neutral-800 font-bold"
                   on:click={() => {
                     increaseDate("from", -1);
                   }}
@@ -607,7 +611,7 @@
                 <input
                   title="You can also type in the year"
                   type="number"
-                  class="px-2 focus-within:scale-110 outline-none font-bold text-xl tabular-nums py-3 text-center bg-neutral-800  "
+                  class="px-2 focus-within:scale-110 outline-none font-bold text-xl tabular-nums py-3 text-center bg-neutral-800"
                   value={fromDate.split("-")[0]}
                   on:input={(e) => {
                     setDateYear("from", e.target.value);
@@ -615,7 +619,7 @@
                 />
                 <button
                   title="Increase year"
-                  class="pt-[2px] pb-[6px] px-3 bg-neutral-700 active:bg-neutral-900 h-full justify-center hover:bg-neutral-800 font-bold "
+                  class="pt-[2px] pb-[6px] px-3 bg-neutral-700 active:bg-neutral-900 h-full justify-center hover:bg-neutral-800 font-bold"
                   on:click={() => {
                     increaseDate("from", 1);
                     console.log(fromDate.split("-")[1]);
@@ -630,7 +634,7 @@
               >
                 <button
                   title="set season to winter"
-                  class="flex items-center justify-center p-2   h-full hover:bg-neutral-700 {fromDate.split(
+                  class="flex items-center justify-center p-2 h-full hover:bg-neutral-700 {fromDate.split(
                     '-'
                   )[1] === '12' ||
                   fromDate.split('-')[1] === '02' ||
@@ -646,7 +650,7 @@
                 </button>
                 <button
                   title="set season to spring"
-                  class="flex items-center justify-center p-2   h-full hover:bg-neutral-700 {fromDate.split(
+                  class="flex items-center justify-center p-2 h-full hover:bg-neutral-700 {fromDate.split(
                     '-'
                   )[1] === '03' ||
                   fromDate.split('-')[1] === '04' ||
@@ -662,7 +666,7 @@
                 </button>
                 <button
                   title="set season to summer"
-                  class="flex items-center justify-center p-2    h-full hover:bg-neutral-700 {fromDate.split(
+                  class="flex items-center justify-center p-2 h-full hover:bg-neutral-700 {fromDate.split(
                     '-'
                   )[1] === '06' ||
                   fromDate.split('-')[1] === '07' ||
@@ -678,7 +682,7 @@
                 </button>
                 <button
                   title="set season to autumn/fall"
-                  class="flex items-center justify-center p-2      h-full hover:bg-neutral-700 {fromDate.split(
+                  class="flex items-center justify-center p-2 h-full hover:bg-neutral-700 {fromDate.split(
                     '-'
                   )[1] === '09' ||
                   fromDate.split('-')[1] === '10' ||
@@ -839,12 +843,12 @@
       <!-- set status buttons -->
       <h2 class="mt-12 text-3xl font-bold">Status</h2>
       <div
-        class="mt-6 md:grid-flow-col grid-container md:grid md:auto-cols-fr max-sm:gap-2 gap-1 "
+        class="mt-6 md:grid-flow-col grid-container md:grid md:auto-cols-fr max-sm:gap-2 gap-1"
       >
         {#each status as { title, value }}
           <button
             title="set status to {title}"
-            class=" active:bg-neutral-900 px-5 py-3  w-full   hover:bg-neutral-700  bg-neutral-800 {value ===
+            class=" active:bg-neutral-900 px-5 py-3 w-full hover:bg-neutral-700 bg-neutral-800 {value ===
             selectedStatus
               ? ' bg-neutral-800 outline outline-1'
               : ' bg-neutral-500'}"
@@ -860,12 +864,12 @@
       <h2 class="text-3xl font-bold mt-12">Sort By</h2>
       <!-- sort buttons -->
       <div
-        class="mt-6 md:grid-flow-col grid-container md:grid md:auto-cols-fr max-sm:gap-2 gap-1 "
+        class="mt-6 md:grid-flow-col grid-container md:grid md:auto-cols-fr max-sm:gap-2 gap-1"
       >
         {#each sortBtns as sortBtn}
           <button
             title="sort by {sortBtn.name}"
-            class=" active:bg-neutral-900 px-5 py-3  w-full   hover:bg-neutral-700   bg-neutral-800 {sortBtn.value ===
+            class=" active:bg-neutral-900 px-5 py-3 w-full hover:bg-neutral-700 bg-neutral-800 {sortBtn.value ===
             selectedSortBtn
               ? ' bg-neutral-800 outline outline-1'
               : ' bg-neutral-500'}"
@@ -881,8 +885,8 @@
       <!-- "Show me!" fetch Button -->
       <div class="flex mt-24 mt- justify-center items-center" id="results">
         <button
-          title="Show results"
-          class="rounded transition-all duration-300 font-bold text-lg px-5 py-3  hover:shadow-[0px_0px_37px_1px_rgba(243,1,117,1)] shadow-[0px_0px_27px_1px_rgba(243,1,117,0.76)] bg-[#f30175]"
+          title="Show resultss"
+          class="rounded transition-all duration-300 font-bold text-lg px-5 py-3 hover:shadow-[0px_0px_37px_1px_rgba(243,1,117,1)] shadow-[0px_0px_27px_1px_rgba(243,1,117,0.76)] bg-[#f30175]"
           on:click={() => {
             fetchAnime();
             // scroll to #results
@@ -1106,7 +1110,7 @@
             <AccordionItem>
               <div
                 slot="title"
-                class="p-3 pt-2 flex items-center  cursor-pointer hover:bg-neutral-700 active:bg-neutral-900"
+                class="p-3 pt-2 flex items-center cursor-pointer hover:bg-neutral-700 active:bg-neutral-900"
                 on:click={(e) => {
                   e.target
                     .querySelector(".arrow")
@@ -1194,7 +1198,7 @@
         <!-- previous page button -->
         <button
           disabled={currentPage === 1 ? "true" : undefined}
-          class="w-full py-3  h-full flex bg-neutral-800
+          class="w-full py-3 h-full flex bg-neutral-800
             justify-center items-center hover:bg-neutral-700"
           on:click={() => {
             // decrease current page number by 1 and fetch anime
@@ -1217,7 +1221,7 @@
 
         <!-- next page button -->
         <button
-          class="w-full py-3 bg-neutral-800  h-full flex justify-center items-center hover:bg-neutral-700"
+          class="w-full py-3 bg-neutral-800 h-full flex justify-center items-center hover:bg-neutral-700"
           on:click={() => {
             // increment currentPage by 1 and fetch anime
             currentPage++;
