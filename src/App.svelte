@@ -304,7 +304,7 @@
       if (response.errors) {
         throw new Error(`AniList API error: ${response.errors[0].message}`);
       }
-      // anilist has no server-side "no sequels" filter, so drop entries
+      // AniList has no server-side "no sequels" filter, so drop entries
       // client-side (pages may end up smaller)
       animeData = firstSeasonOnly
         ? response.data.Page.media.filter((m) => !hasSeriesPrequel(m))
