@@ -1,7 +1,9 @@
 <script>
-  import { genres } from "../lib/anilist.js";
+  import { genres as animeGenres } from "../lib/anilist.js";
 
   let {
+    // the books view passes open library's subjects instead
+    genres = animeGenres,
     selectedGenres,
     selectedExcludeGenres,
     clickedIncludeBtn,

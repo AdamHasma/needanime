@@ -1,8 +1,10 @@
 <script>
   import AnimeCard from "./AnimeCard.svelte";
+  import BookCard from "./BookCard.svelte";
 
   let {
     animeData,
+    isBooksView = false,
     paginationData,
     isLoading,
     noResults,
@@ -20,7 +22,11 @@
 <section id="results" class="w-full scroll-mt-6 text-center">
   {#if isLoading}
     <h2 class="mb-6 mt-12 font-display text-3xl">
-      {isTrendingView ? "Trending Now" : "Results"}
+      {isTrendingView
+        ? isBooksView
+          ? "Most read"
+          : "Trending Now"
+        : "Results"}
     </h2>
     <div class="grid w-full grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-4">
       {#each skeletons as i (i)}
@@ -38,11 +44,19 @@
     </div>
   {:else if animeData.length > 0}
     <h2 class="mb-6 mt-12 font-display text-3xl">
-      {isTrendingView ? "Trending Now" : "Results"}
+      {isTrendingView
+        ? isBooksView
+          ? "Most read"
+          : "Trending Now"
+        : "Results"}
     </h2>
     <div class="grid w-full grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-4">
-      {#each animeData as anime (anime.id)}
-        <AnimeCard {anime} />
+      {#each animeData as item (isBooksView ? item.key : item.id)}
+        {#if isBooksView}
+          <BookCard book={item} />
+        {:else}
+          <AnimeCard anime={item} />
+        {/if}
       {/each}
     </div>
   {:else if noResults}
@@ -53,7 +67,9 @@
         <line x1="8" x2="14" y1="11" y2="11" />
       </svg>
       <h2 class="text-2xl font-bold">
-        {apiError ? "The anime database is currently unavailable" : "No results found"}
+        {apiError
+          ? `The ${isBooksView ? "book" : "anime"} database is currently unavailable`
+          : "No results found"}
       </h2>
       <p class="text-text-muted">
         {apiError

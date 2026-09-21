@@ -6,6 +6,12 @@
     genres,
     tags,
   } from "./lib/anilist.js";
+  import {
+    bookSearchUrl,
+    bookSortOptions,
+    bookSubjects,
+    toTenScale,
+  } from "./lib/openlibrary.js";
   import ScoreFilter from "./components/ScoreFilter.svelte";
   import GenreFilter from "./components/GenreFilter.svelte";
   import TagFilter from "./components/TagFilter.svelte";
@@ -38,9 +44,25 @@
   // selected exclude genres
   let selectedExcludeGenres = $state([]);
 
-  // every anilist genre/tag name from the genres array
-  const allGenreNames = genres.flatMap((group) =>
-    group.flatMap((genre) => Object.values(genre))
+  // anime and books are two different databases behind one set of filters:
+  // anilist for anime, open library for novels
+  const mediaTypes = [
+    { label: "Anime", value: "ANIME" },
+    { label: "Books", value: "BOOKS" },
+  ];
+
+  let mediaType = $state("ANIME");
+  let isBooksView = $derived(mediaType === "BOOKS");
+
+  // the genre grid swaps its vocabulary with the media type — anilist genres
+  // and open library subjects share nothing
+  const activeGenres = $derived(isBooksView ? bookSubjects : genres);
+
+  // every genre/subject name from the active grid
+  const allGenreNames = $derived(
+    activeGenres.flatMap((group) =>
+      group.flatMap((genre) => Object.values(genre))
+    )
   );
 
   // clicked state of include/exclude all buttons
@@ -174,12 +196,14 @@
   let toYear = $state("");
 
   // sort button array
-  const sortBtns = [
+  const animeSortBtns = [
     { label: "Most popular", value: "POPULARITY_DESC" },
     { label: "Best rated", value: "SCORE_DESC" },
     { label: "Oldest anime", value: "START_DATE" },
     { label: "Newest anime", value: "START_DATE_DESC" },
   ];
+
+  const sortBtns = $derived(isBooksView ? bookSortOptions : animeSortBtns);
 
   let selectedSortBtn = $state("");
 
@@ -231,6 +255,30 @@
   // forward, since a results page no longer maps to a single api page
   let pageCursors = [1];
 
+  const setMediaType = (value) => {
+    if (value === mediaType) return;
+    mediaType = value;
+    // the two sides share no vocabulary, so every selection is dropped
+    selectedGenres = [];
+    selectedExcludeGenres = [];
+    selectedTags = [];
+    selectedExcludeTags = [];
+    clickedIncludeBtn = false;
+    clickedExcludeBtn = false;
+    clickedIncludeTagBtn = false;
+    clickedExcludeTagBtn = false;
+    selectedSortBtn = "";
+    selectedStatus = "";
+    firstSeasonOnly = false;
+    // open library reaches back to the 19th century, anilist doesn't
+    fromYear = value === "BOOKS" ? "" : "1980";
+    toYear = "";
+    pageCursors = [1];
+    currentPage = 1;
+    isTrendingView = true;
+    value === "BOOKS" ? fetchBooks() : loadTrending();
+  };
+
   // is loading variable
   let isLoading = $state(false);
 
@@ -250,7 +298,9 @@
       (selectedStatus ? 1 : 0) +
       (selectedSortBtn ? 1 : 0) +
       (firstSeasonOnly ? 1 : 0) +
-      (fromYear !== "1980" || toYear !== "" ? 1 : 0)
+      ((isBooksView ? fromYear !== "" : fromYear !== "1980") || toYear !== ""
+        ? 1
+        : 0)
   );
 
   // true until the user runs their first real search — the results grid
@@ -351,17 +401,71 @@
     }
   };
 
+  // open library search. its index can't range-filter ratings (it returns
+  // nonsense for that field), so the score filter runs client-side — which
+  // means the same multi-page fill as the anime side
+  const fetchBooks = async () => {
+    try {
+      isLoading = true;
+      apiError = false;
+      noResults = true;
+      scrollToResults();
+      let apiPage = pageCursors[currentPage - 1] ?? currentPage;
+      let collected = [];
+      let hasNextPage = false;
+
+      for (let i = 0; i < maxApiPages; i++) {
+        const res = await fetchWithRetry(
+          bookSearchUrl({
+            includeSubjects: selectedGenres,
+            excludeSubjects: selectedExcludeGenres,
+            fromYear,
+            toYear,
+            sort: selectedSortBtn || "readinglog",
+            page: apiPage,
+            perPage,
+          }),
+          {}
+        );
+        const data = await res.json();
+        collected.push(
+          ...data.docs.filter(
+            (b) =>
+              selectedRating === 0 ||
+              (b.ratings_average && toTenScale(b.ratings_average) >= selectedRating)
+          )
+        );
+        hasNextPage = apiPage * perPage < data.numFound;
+        apiPage++;
+        if (!hasNextPage || collected.length >= perPage) break;
+      }
+
+      animeData = collected;
+      pageCursors[currentPage] = apiPage;
+      paginationData = { currentPage, hasNextPage };
+      isLoading = false;
+    } catch (error) {
+      isLoading = false;
+      paginationData = [];
+      apiError = true;
+      animeData = [];
+      console.error(error);
+    }
+  };
+
   // sticky CTA always starts a fresh search on page 1
   const showResults = () => {
     isTrendingView = false;
     pageCursors = [1];
     currentPage = 1;
-    fetchAnime();
+    isBooksView ? fetchBooks() : fetchAnime();
   };
 
   const goToPage = (page) => {
     currentPage = page;
-    isTrendingView ? loadTrending(page) : fetchAnime();
+    if (isBooksView) fetchBooks();
+    else if (isTrendingView) loadTrending(page);
+    else fetchAnime();
   };
 
   // trending anime shown as the default landing view, before the user runs
@@ -411,12 +515,32 @@
       </p>
     </header>
 
-    <AiringCalendar />
+    {#if !isBooksView}
+      <AiringCalendar />
+    {/if}
 
     <main class="mt-16 flex w-full flex-col items-center gap-16 text-center">
+      <!-- anime / books switch -->
+      <div class="flex flex-wrap justify-center gap-2 rounded-xl bg-surface p-2">
+        {#each mediaTypes as type (type.value)}
+          <button
+            type="button"
+            aria-pressed={mediaType === type.value}
+            class="min-w-36 rounded-lg px-5 py-3 font-semibold transition-colors duration-200
+              {mediaType === type.value
+              ? 'bg-primary text-white hover:bg-primary-hover'
+              : 'hover:bg-surface-raised'}"
+            onclick={() => setMediaType(type.value)}
+          >
+            {type.label}
+          </button>
+        {/each}
+      </div>
+
       <ScoreFilter {selectedRating} onSelect={setRating} />
 
       <GenreFilter
+        genres={activeGenres}
         {selectedGenres}
         {selectedExcludeGenres}
         {clickedIncludeBtn}
@@ -427,23 +551,25 @@
         onToggleExcludeAll={toggleExcludeBtn}
       />
 
-      <TagFilter
-        {selectedTags}
-        {selectedExcludeTags}
-        clickedIncludeBtn={clickedIncludeTagBtn}
-        clickedExcludeBtn={clickedExcludeTagBtn}
-        onInclude={addTag}
-        onExclude={addExcludeTag}
-        onToggleIncludeAll={toggleIncludeTagBtn}
-        onToggleExcludeAll={toggleExcludeTagBtn}
-      />
+      {#if !isBooksView}
+        <TagFilter
+            {selectedTags}
+          {selectedExcludeTags}
+          clickedIncludeBtn={clickedIncludeTagBtn}
+          clickedExcludeBtn={clickedExcludeTagBtn}
+          onInclude={addTag}
+          onExclude={addExcludeTag}
+          onToggleIncludeAll={toggleIncludeTagBtn}
+          onToggleExcludeAll={toggleExcludeTagBtn}
+        />
 
-      <OptionGroup
-        title="Type of Anime"
-        options={animeTypes}
-        selected={selectedAnimeType}
-        onSelect={(value) => (selectedAnimeType = value)}
-      />
+        <OptionGroup
+          title="Type of Anime"
+          options={animeTypes}
+          selected={selectedAnimeType}
+          onSelect={(value) => (selectedAnimeType = value)}
+        />
+      {/if}
 
       <ReleaseDateFilter
         {fromYear}
@@ -452,32 +578,34 @@
         onSetToYear={(year) => (toYear = year)}
       />
 
-      <div class="flex w-full flex-col items-center gap-4">
-        <OptionGroup
-          title="Status"
-          options={statusOptions}
-          selected={selectedStatus}
-          onSelect={setStatus}
-        />
+      {#if !isBooksView}
+        <div class="flex w-full flex-col items-center gap-4">
+          <OptionGroup
+            title="Status"
+            options={statusOptions}
+            selected={selectedStatus}
+            onSelect={setStatus}
+          />
 
-        <!-- first season only toggle -->
-        <button
-          type="button"
-          aria-pressed={firstSeasonOnly}
-          class="flex items-center gap-2 rounded-lg px-5 py-3 font-semibold transition-colors duration-200
-            {firstSeasonOnly
-            ? 'bg-primary text-white hover:bg-primary-hover'
-            : 'bg-surface hover:bg-surface-raised'}"
-          onclick={() => (firstSeasonOnly = !firstSeasonOnly)}
-        >
-          {#if firstSeasonOnly}
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M20 6 9 17l-5-5" />
-            </svg>
-          {/if}
-          First seasons only
-        </button>
-      </div>
+          <!-- first season only toggle -->
+          <button
+            type="button"
+            aria-pressed={firstSeasonOnly}
+            class="flex items-center gap-2 rounded-lg px-5 py-3 font-semibold transition-colors duration-200
+              {firstSeasonOnly
+              ? 'bg-primary text-white hover:bg-primary-hover'
+              : 'bg-surface hover:bg-surface-raised'}"
+            onclick={() => (firstSeasonOnly = !firstSeasonOnly)}
+          >
+            {#if firstSeasonOnly}
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+            {/if}
+            First seasons only
+          </button>
+        </div>
+      {/if}
 
       <OptionGroup
         title="Sort By"
@@ -497,9 +625,10 @@
       {apiError}
       {currentPage}
       {isTrendingView}
+      {isBooksView}
       onPrev={() => goToPage(currentPage - 1)}
       onNext={() => goToPage(currentPage + 1)}
-      onRetry={fetchAnime}
+      onRetry={() => (isBooksView ? fetchBooks() : fetchAnime())}
     />
   </div>
 
