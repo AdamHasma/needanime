@@ -1,16 +1,7 @@
 <script>
-  import {
-    animeDetailQuery,
-    fetchWithRetry,
-    mangaFormats,
-    stripHtml,
-  } from "../lib/anilist.js";
+  import { animeDetailQuery, fetchWithRetry, stripHtml } from "../lib/anilist.js";
 
   let { anime, onClose } = $props();
-
-  // light novels come from the same api but have chapters/volumes and an
-  // author instead of episodes/duration and a studio
-  const isNovel = $derived(mangaFormats.has(anime.format));
 
   let isLoading = $state(true);
   let hasError = $state(false);
@@ -58,9 +49,6 @@
       ? `https://img.youtube.com/vi/${details.trailer.id.trim()}/hqdefault.jpg`
       : null
   );
-
-  // most relevant staff member — for a novel that's the original author
-  const author = $derived(details?.staff?.edges?.[0] ?? null);
 
   const handleKeydown = (e) => {
     if (e.key === "Escape") onClose();
@@ -125,15 +113,6 @@
         {#if !isLoading && details?.duration}
           <span>{details.duration} min/ep</span>
         {/if}
-        {#if anime.volumes}
-          <span>{anime.volumes} volumes</span>
-        {/if}
-        {#if anime.chapters}
-          <span>{anime.chapters} chapters</span>
-        {/if}
-        {#if isNovel && !anime.volumes && !anime.chapters && anime.status === "RELEASING"}
-          <span>ongoing</span>
-        {/if}
       </div>
 
       {#if anime.genres.length > 0}
@@ -158,11 +137,8 @@
       {:else if hasError}
         <p class="mt-4 text-text-muted">Couldn't load more details right now.</p>
       {:else}
-        {#if details.studios?.nodes?.[0] || details.source || (isNovel && author)}
+        {#if details.studios?.nodes?.[0] || details.source}
           <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-text-muted">
-            {#if isNovel && author}
-              <span>{author.node.name.full}</span>
-            {/if}
             {#if details.studios?.nodes?.[0]}
               <span>{details.studios.nodes[0].name}</span>
             {/if}
@@ -207,9 +183,7 @@
         {/if}
 
         {#if details.recommendations?.nodes?.length > 0}
-          <h4 class="mt-4 font-semibold">
-            Similar {isNovel ? "novels" : "anime"}
-          </h4>
+          <h4 class="mt-4 font-semibold">Similar anime</h4>
           <div class="mt-2 flex gap-3 overflow-x-auto pb-1">
             {#each details.recommendations.nodes as node (node.mediaRecommendation.id)}
               <a

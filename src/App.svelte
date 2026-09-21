@@ -158,30 +158,6 @@
     }
   };
 
-  // anilist serves light novels under type MANGA (format NOVEL), with the
-  // same genre/tag/score/date filters — the toggle only swaps the media type
-  // and hides the anime-only filters below
-  const mediaTypes = [
-    { label: "Anime", value: "ANIME" },
-    { label: "Light Novels", value: "MANGA" },
-  ];
-
-  let mediaType = $state("ANIME");
-  let isNovelMode = $derived(mediaType === "MANGA");
-
-  const setMediaType = (value) => {
-    if (value === mediaType) return;
-    mediaType = value;
-    // filters that only exist on one side of the toggle
-    firstSeasonOnly = false;
-    mainNovelsOnly = false;
-    notAdaptedOnly = false;
-    selectedLength = "";
-    pageCursors = [1];
-    currentPage = 1;
-    if (isTrendingView) loadTrending();
-  };
-
   // anime type
   const animeTypes = [
     { label: "TV", value: "tv" },
@@ -193,48 +169,26 @@
   // selected anime type
   let selectedAnimeType = $state("tv");
 
-  // how long a novel already is — anilist only knows a volume count for
-  // entries that report one, so ongoing novels without a count drop out of
-  // any of these (see the note in fetchAnime)
-  const lengthOptions = [
-    { label: "Short (1–5)", value: "short" },
-    { label: "Medium (6–15)", value: "medium" },
-    { label: "Long (16+)", value: "long" },
-  ];
-
-  let selectedLength = $state("");
-
-  // clicking the selected length again removes it
-  const setLength = (value) => {
-    selectedLength = selectedLength === value ? "" : value;
-  };
-
   // release year range; an empty "to" means no upper bound
   let fromYear = $state("1980");
   let toYear = $state("");
 
   // sort button array
-  const sortBtns = $derived([
+  const sortBtns = [
     { label: "Most popular", value: "POPULARITY_DESC" },
     { label: "Best rated", value: "SCORE_DESC" },
-    { label: isNovelMode ? "Oldest novels" : "Oldest anime", value: "START_DATE" },
-    {
-      label: isNovelMode ? "Newest novels" : "Newest anime",
-      value: "START_DATE_DESC",
-    },
-  ]);
+    { label: "Oldest anime", value: "START_DATE" },
+    { label: "Newest anime", value: "START_DATE_DESC" },
+  ];
 
   let selectedSortBtn = $state("");
 
   // completed, airing, upcoming
-  const statusOptions = $derived([
-    { label: isNovelMode ? "Completed" : "Completed anime", value: "FINISHED" },
-    { label: isNovelMode ? "Releasing" : "Airing anime", value: "RELEASING" },
-    {
-      label: isNovelMode ? "Upcoming" : "Upcoming anime",
-      value: "NOT_YET_RELEASED",
-    },
-  ]);
+  const statusOptions = [
+    { label: "Completed anime", value: "FINISHED" },
+    { label: "Airing anime", value: "RELEASING" },
+    { label: "Upcoming anime", value: "NOT_YET_RELEASED" },
+  ];
 
   let selectedStatus = $state("");
 
@@ -245,32 +199,6 @@
 
   // only show franchise starters (entries without an anime prequel)
   let firstSeasonOnly = $state(false);
-
-  // novel-only: skip side stories/continuations, and entries that already
-  // have an anime or film
-  let mainNovelsOnly = $state(false);
-  let notAdaptedOnly = $state(false);
-
-  // a novel with a parent story is a side story, one that continues an older
-  // novel is a later entry — either way not the start of a main series.
-  // the prequel has to be *older*: many main series link a prequel spin-off
-  // written years later (Arifureta Zero, DanMachi Argonaut). spin-off edges
-  // are no help at all here, anilist puts those on the main entry too
-  const isSideStory = (m) =>
-    m.relations?.edges?.some(
-      (e) =>
-        e.relationType === "PARENT" ||
-        (e.relationType === "PREQUEL" &&
-          e.node.format === "NOVEL" &&
-          e.node.startDate?.year &&
-          m.startDate?.year &&
-          e.node.startDate.year < m.startDate.year)
-    );
-
-  // any related anime entry counts as adapted — the relation is usually
-  // ADAPTATION, but anilist files some of them as a sequel instead
-  const hasAnimeAdaptation = (m) =>
-    m.relations?.edges?.some((e) => e.node.type === "ANIME");
 
   // a prequel marks an entry as a sequel when it's a series (TV/TV_SHORT) or
   // shares the entry's own format (catches ONA sequels of ONA series) — but
@@ -292,19 +220,12 @@
           ))
     );
 
-  // the relation filters run client-side, so one api page can shrink to a
-  // couple of entries — fetchAnime keeps pulling pages until the grid is
-  // full, capped so a very narrow filter can't fire off a dozen requests
+  // "first seasons only" is filtered client-side, so one api page can
+  // shrink to a handful of entries — fetchAnime keeps pulling pages until
+  // the grid is full, capped so a narrow filter can't fire off a dozen
+  // requests
   const perPage = 25;
   const maxApiPages = 6;
-
-  const applyClientFilters = (media) => {
-    let result = media;
-    if (firstSeasonOnly) result = result.filter((m) => !hasSeriesPrequel(m));
-    if (mainNovelsOnly) result = result.filter((m) => !isSideStory(m));
-    if (notAdaptedOnly) result = result.filter((m) => !hasAnimeAdaptation(m));
-    return result;
-  };
 
   // api page each results page starts at — built up as the user pages
   // forward, since a results page no longer maps to a single api page
@@ -329,9 +250,6 @@
       (selectedStatus ? 1 : 0) +
       (selectedSortBtn ? 1 : 0) +
       (firstSeasonOnly ? 1 : 0) +
-      (mainNovelsOnly ? 1 : 0) +
-      (notAdaptedOnly ? 1 : 0) +
-      (selectedLength ? 1 : 0) +
       (fromYear !== "1980" || toYear !== "" ? 1 : 0)
   );
 
@@ -362,8 +280,7 @@
 
     const variables = {
       perPage,
-      type: mediaType,
-      format: isNovelMode ? "NOVEL" : selectedAnimeType.toUpperCase(),
+      format: selectedAnimeType.toUpperCase(),
       sort: [selectedSortBtn || "POPULARITY_DESC"],
     };
     // fuzzy date ints (e.g. 19800101); both bounds are exclusive, so the
@@ -379,15 +296,6 @@
     if (excludeGenres.length > 0) variables.genreNotIn = excludeGenres;
     if (excludeTags.length > 0) variables.tagNotIn = excludeTags;
     if (selectedStatus) variables.status = selectedStatus;
-    // volumes_greater/_lesser are exclusive, so the bounds are shifted by one.
-    // anilist has no volume count for many ongoing novels — those are dropped
-    // by any volume filter, which is why "any length" stays the default
-    if (selectedLength === "short") variables.volumesLesser = 6;
-    if (selectedLength === "medium") {
-      variables.volumesGreater = 5;
-      variables.volumesLesser = 16;
-    }
-    if (selectedLength === "long") variables.volumesGreater = 15;
 
     try {
       isLoading = true;
@@ -415,7 +323,14 @@
         if (response.errors) {
           throw new Error(`AniList API error: ${response.errors[0].message}`);
         }
-        collected.push(...applyClientFilters(response.data.Page.media));
+        // AniList has no server-side "no sequels" filter, so drop entries
+        // client-side
+        const media = response.data.Page.media;
+        collected.push(
+          ...(firstSeasonOnly
+            ? media.filter((m) => !hasSeriesPrequel(m))
+            : media)
+        );
         hasNextPage = response.data.Page.pageInfo.hasNextPage;
         apiPage++;
         if (!hasNextPage || collected.length >= perPage) break;
@@ -462,12 +377,7 @@
         },
         body: JSON.stringify({
           query: animeQuery,
-          variables: {
-            page,
-            perPage: 25,
-            type: mediaType,
-            sort: ["TRENDING_DESC"],
-          },
+          variables: { page, perPage: 25, sort: ["TRENDING_DESC"] },
         }),
       });
       const response = await res.json();
@@ -501,28 +411,9 @@
       </p>
     </header>
 
-    {#if !isNovelMode}
-      <AiringCalendar />
-    {/if}
+    <AiringCalendar />
 
     <main class="mt-16 flex w-full flex-col items-center gap-16 text-center">
-      <!-- anime / light novel switch -->
-      <div class="flex flex-wrap justify-center gap-2 rounded-xl bg-surface p-2">
-        {#each mediaTypes as type (type.value)}
-          <button
-            type="button"
-            aria-pressed={mediaType === type.value}
-            class="min-w-36 rounded-lg px-5 py-3 font-semibold transition-colors duration-200
-              {mediaType === type.value
-              ? 'bg-primary text-white hover:bg-primary-hover'
-              : 'hover:bg-surface-raised'}"
-            onclick={() => setMediaType(type.value)}
-          >
-            {type.label}
-          </button>
-        {/each}
-      </div>
-
       <ScoreFilter {selectedRating} onSelect={setRating} />
 
       <GenreFilter
@@ -547,14 +438,12 @@
         onToggleExcludeAll={toggleExcludeTagBtn}
       />
 
-      {#if !isNovelMode}
-        <OptionGroup
-          title="Type of Anime"
-          options={animeTypes}
-          selected={selectedAnimeType}
-          onSelect={(value) => (selectedAnimeType = value)}
-        />
-      {/if}
+      <OptionGroup
+        title="Type of Anime"
+        options={animeTypes}
+        selected={selectedAnimeType}
+        onSelect={(value) => (selectedAnimeType = value)}
+      />
 
       <ReleaseDateFilter
         {fromYear}
@@ -571,60 +460,24 @@
           onSelect={setStatus}
         />
 
-        <!-- on/off filters anilist can't do server-side -->
-        {#snippet filterToggle(label, hint, pressed, onToggle)}
-          <button
-            type="button"
-            title={hint}
-            aria-pressed={pressed}
-            class="flex items-center gap-2 rounded-lg px-5 py-3 font-semibold transition-colors duration-200
-              {pressed
-              ? 'bg-primary text-white hover:bg-primary-hover'
-              : 'bg-surface hover:bg-surface-raised'}"
-            onclick={onToggle}
-          >
-            {#if pressed}
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M20 6 9 17l-5-5" />
-              </svg>
-            {/if}
-            {label}
-          </button>
-        {/snippet}
-
-        <div class="flex flex-wrap justify-center gap-2">
-          {#if isNovelMode}
-            {@render filterToggle(
-              "Main novels only",
-              "Hide side stories and later entries of a series",
-              mainNovelsOnly,
-              () => (mainNovelsOnly = !mainNovelsOnly)
-            )}
-            {@render filterToggle(
-              "Not adapted yet",
-              "Only novels without an anime or film",
-              notAdaptedOnly,
-              () => (notAdaptedOnly = !notAdaptedOnly)
-            )}
-          {:else}
-            {@render filterToggle(
-              "First seasons only",
-              "Hide sequels and later seasons",
-              firstSeasonOnly,
-              () => (firstSeasonOnly = !firstSeasonOnly)
-            )}
+        <!-- first season only toggle -->
+        <button
+          type="button"
+          aria-pressed={firstSeasonOnly}
+          class="flex items-center gap-2 rounded-lg px-5 py-3 font-semibold transition-colors duration-200
+            {firstSeasonOnly
+            ? 'bg-primary text-white hover:bg-primary-hover'
+            : 'bg-surface hover:bg-surface-raised'}"
+          onclick={() => (firstSeasonOnly = !firstSeasonOnly)}
+        >
+          {#if firstSeasonOnly}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M20 6 9 17l-5-5" />
+            </svg>
           {/if}
-        </div>
+          First seasons only
+        </button>
       </div>
-
-      {#if isNovelMode}
-        <OptionGroup
-          title="Length"
-          options={lengthOptions}
-          selected={selectedLength}
-          onSelect={setLength}
-        />
-      {/if}
 
       <OptionGroup
         title="Sort By"
