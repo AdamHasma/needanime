@@ -125,11 +125,14 @@
         {#if !isLoading && details?.duration}
           <span>{details.duration} min/ep</span>
         {/if}
-        {#if !isLoading && details?.volumes}
-          <span>{details.volumes} volumes</span>
+        {#if anime.volumes}
+          <span>{anime.volumes} volumes</span>
         {/if}
-        {#if !isLoading && details?.chapters}
-          <span>{details.chapters} chapters</span>
+        {#if anime.chapters}
+          <span>{anime.chapters} chapters</span>
+        {/if}
+        {#if isNovel && !anime.volumes && !anime.chapters && anime.status === "RELEASING"}
+          <span>ongoing</span>
         {/if}
       </div>
 

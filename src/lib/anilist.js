@@ -131,16 +131,19 @@ export const fetchWithRetry = async (url, options, retries = 2) => {
 
 // anilist graphql query — unset variables are omitted from the variables
 // object, anilist then ignores those filters entirely
-export const animeQuery = `query ($page: Int, $perPage: Int, $type: MediaType, $format: MediaFormat, $status: MediaStatus, $minScore: Int, $genreIn: [String], $genreNotIn: [String], $tagIn: [String], $tagNotIn: [String], $startDateGreater: FuzzyDateInt, $startDateLesser: FuzzyDateInt, $sort: [MediaSort]) {
+export const animeQuery = `query ($page: Int, $perPage: Int, $type: MediaType, $format: MediaFormat, $status: MediaStatus, $minScore: Int, $genreIn: [String], $genreNotIn: [String], $tagIn: [String], $tagNotIn: [String], $startDateGreater: FuzzyDateInt, $startDateLesser: FuzzyDateInt, $volumesGreater: Int, $volumesLesser: Int, $sort: [MediaSort]) {
   Page(page: $page, perPage: $perPage) {
     pageInfo { currentPage hasNextPage }
-    media(type: $type, isAdult: false, format: $format, status: $status, averageScore_greater: $minScore, genre_in: $genreIn, genre_not_in: $genreNotIn, tag_in: $tagIn, tag_not_in: $tagNotIn, startDate_greater: $startDateGreater, startDate_lesser: $startDateLesser, sort: $sort) {
+    media(type: $type, isAdult: false, format: $format, status: $status, averageScore_greater: $minScore, genre_in: $genreIn, genre_not_in: $genreNotIn, tag_in: $tagIn, tag_not_in: $tagNotIn, startDate_greater: $startDateGreater, startDate_lesser: $startDateLesser, volumes_greater: $volumesGreater, volumes_lesser: $volumesLesser, sort: $sort) {
       id
       title { romaji }
       coverImage { extraLarge }
       seasonYear
       startDate { year }
       format
+      volumes
+      chapters
+      status
       averageScore
       popularity
       genres
@@ -150,7 +153,9 @@ export const animeQuery = `query ($page: Int, $perPage: Int, $type: MediaType, $
         edges {
           relationType
           node {
+            type
             format
+            startDate { year }
             relations {
               edges {
                 relationType
@@ -170,8 +175,6 @@ export const animeDetailQuery = `query ($id: Int) {
   Media(id: $id) {
     episodes
     duration
-    chapters
-    volumes
     source
     staff(sort: RELEVANCE, perPage: 1) {
       edges { role node { name { full } } }
