@@ -108,6 +108,10 @@ export const anilistGenres = new Set([
   "Thriller",
 ]);
 
+// anilist serves light novels under type MANGA — these formats mark an
+// entry as a novel/manga so cards and the modal can label it accordingly
+export const mangaFormats = new Set(["NOVEL", "MANGA", "ONE_SHOT"]);
+
 // anilist descriptions contain html tags (<br>, <i>, ...)
 export const stripHtml = (html) =>
   html.replace(/<br\s*\/?>/gi, " ").replace(/<[^>]+>/g, "");
@@ -127,10 +131,10 @@ export const fetchWithRetry = async (url, options, retries = 2) => {
 
 // anilist graphql query — unset variables are omitted from the variables
 // object, anilist then ignores those filters entirely
-export const animeQuery = `query ($page: Int, $perPage: Int, $format: MediaFormat, $status: MediaStatus, $minScore: Int, $genreIn: [String], $genreNotIn: [String], $tagIn: [String], $tagNotIn: [String], $startDateGreater: FuzzyDateInt, $startDateLesser: FuzzyDateInt, $sort: [MediaSort]) {
+export const animeQuery = `query ($page: Int, $perPage: Int, $type: MediaType, $format: MediaFormat, $status: MediaStatus, $minScore: Int, $genreIn: [String], $genreNotIn: [String], $tagIn: [String], $tagNotIn: [String], $startDateGreater: FuzzyDateInt, $startDateLesser: FuzzyDateInt, $sort: [MediaSort]) {
   Page(page: $page, perPage: $perPage) {
     pageInfo { currentPage hasNextPage }
-    media(type: ANIME, isAdult: false, format: $format, status: $status, averageScore_greater: $minScore, genre_in: $genreIn, genre_not_in: $genreNotIn, tag_in: $tagIn, tag_not_in: $tagNotIn, startDate_greater: $startDateGreater, startDate_lesser: $startDateLesser, sort: $sort) {
+    media(type: $type, isAdult: false, format: $format, status: $status, averageScore_greater: $minScore, genre_in: $genreIn, genre_not_in: $genreNotIn, tag_in: $tagIn, tag_not_in: $tagNotIn, startDate_greater: $startDateGreater, startDate_lesser: $startDateLesser, sort: $sort) {
       id
       title { romaji }
       coverImage { extraLarge }
@@ -166,7 +170,12 @@ export const animeDetailQuery = `query ($id: Int) {
   Media(id: $id) {
     episodes
     duration
+    chapters
+    volumes
     source
+    staff(sort: RELEVANCE, perPage: 1) {
+      edges { role node { name { full } } }
+    }
     studios(isMain: true) {
       nodes { name }
     }

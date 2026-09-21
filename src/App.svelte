@@ -158,6 +158,26 @@
     }
   };
 
+  // anilist serves light novels under type MANGA (format NOVEL), with the
+  // same genre/tag/score/date filters — the toggle only swaps the media type
+  // and hides the anime-only filters below
+  const mediaTypes = [
+    { label: "Anime", value: "ANIME" },
+    { label: "Light Novels", value: "MANGA" },
+  ];
+
+  let mediaType = $state("ANIME");
+  let isNovelMode = $derived(mediaType === "MANGA");
+
+  const setMediaType = (value) => {
+    if (value === mediaType) return;
+    mediaType = value;
+    // anime-only filter, meaningless for novels
+    firstSeasonOnly = false;
+    currentPage = 1;
+    if (isTrendingView) loadTrending();
+  };
+
   // anime type
   const animeTypes = [
     { label: "TV", value: "tv" },
@@ -174,21 +194,27 @@
   let toYear = $state("");
 
   // sort button array
-  const sortBtns = [
+  const sortBtns = $derived([
     { label: "Most popular", value: "POPULARITY_DESC" },
     { label: "Best rated", value: "SCORE_DESC" },
-    { label: "Oldest anime", value: "START_DATE" },
-    { label: "Newest anime", value: "START_DATE_DESC" },
-  ];
+    { label: isNovelMode ? "Oldest novels" : "Oldest anime", value: "START_DATE" },
+    {
+      label: isNovelMode ? "Newest novels" : "Newest anime",
+      value: "START_DATE_DESC",
+    },
+  ]);
 
   let selectedSortBtn = $state("");
 
   // completed, airing, upcoming
-  const statusOptions = [
-    { label: "Completed anime", value: "FINISHED" },
-    { label: "Airing anime", value: "RELEASING" },
-    { label: "Upcoming anime", value: "NOT_YET_RELEASED" },
-  ];
+  const statusOptions = $derived([
+    { label: isNovelMode ? "Completed" : "Completed anime", value: "FINISHED" },
+    { label: isNovelMode ? "Releasing" : "Airing anime", value: "RELEASING" },
+    {
+      label: isNovelMode ? "Upcoming" : "Upcoming anime",
+      value: "NOT_YET_RELEASED",
+    },
+  ]);
 
   let selectedStatus = $state("");
 
@@ -270,7 +296,8 @@
     const variables = {
       page: currentPage,
       perPage: 25,
-      format: selectedAnimeType.toUpperCase(),
+      type: mediaType,
+      format: isNovelMode ? "NOVEL" : selectedAnimeType.toUpperCase(),
       sort: [selectedSortBtn || "POPULARITY_DESC"],
     };
     // fuzzy date ints (e.g. 19800101); both bounds are exclusive, so the
@@ -345,7 +372,12 @@
         },
         body: JSON.stringify({
           query: animeQuery,
-          variables: { page, perPage: 25, sort: ["TRENDING_DESC"] },
+          variables: {
+            page,
+            perPage: 25,
+            type: mediaType,
+            sort: ["TRENDING_DESC"],
+          },
         }),
       });
       const response = await res.json();
@@ -379,9 +411,28 @@
       </p>
     </header>
 
-    <AiringCalendar />
+    {#if !isNovelMode}
+      <AiringCalendar />
+    {/if}
 
     <main class="mt-16 flex w-full flex-col items-center gap-16 text-center">
+      <!-- anime / light novel switch -->
+      <div class="flex flex-wrap justify-center gap-2 rounded-xl bg-surface p-2">
+        {#each mediaTypes as type (type.value)}
+          <button
+            type="button"
+            aria-pressed={mediaType === type.value}
+            class="min-w-36 rounded-lg px-5 py-3 font-semibold transition-colors duration-200
+              {mediaType === type.value
+              ? 'bg-primary text-white hover:bg-primary-hover'
+              : 'hover:bg-surface-raised'}"
+            onclick={() => setMediaType(type.value)}
+          >
+            {type.label}
+          </button>
+        {/each}
+      </div>
+
       <ScoreFilter {selectedRating} onSelect={setRating} />
 
       <GenreFilter
@@ -406,12 +457,14 @@
         onToggleExcludeAll={toggleExcludeTagBtn}
       />
 
-      <OptionGroup
-        title="Type of Anime"
-        options={animeTypes}
-        selected={selectedAnimeType}
-        onSelect={(value) => (selectedAnimeType = value)}
-      />
+      {#if !isNovelMode}
+        <OptionGroup
+          title="Type of Anime"
+          options={animeTypes}
+          selected={selectedAnimeType}
+          onSelect={(value) => (selectedAnimeType = value)}
+        />
+      {/if}
 
       <ReleaseDateFilter
         {fromYear}
@@ -428,23 +481,25 @@
           onSelect={setStatus}
         />
 
-        <!-- first season only toggle -->
-        <button
-          type="button"
-          aria-pressed={firstSeasonOnly}
-          class="flex items-center gap-2 rounded-lg px-5 py-3 font-semibold transition-colors duration-200
-            {firstSeasonOnly
-            ? 'bg-primary text-white hover:bg-primary-hover'
-            : 'bg-surface hover:bg-surface-raised'}"
-          onclick={() => (firstSeasonOnly = !firstSeasonOnly)}
-        >
-          {#if firstSeasonOnly}
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M20 6 9 17l-5-5" />
-            </svg>
-          {/if}
-          First seasons only
-        </button>
+        <!-- first season only toggle, anime-only -->
+        {#if !isNovelMode}
+          <button
+            type="button"
+            aria-pressed={firstSeasonOnly}
+            class="flex items-center gap-2 rounded-lg px-5 py-3 font-semibold transition-colors duration-200
+              {firstSeasonOnly
+              ? 'bg-primary text-white hover:bg-primary-hover'
+              : 'bg-surface hover:bg-surface-raised'}"
+            onclick={() => (firstSeasonOnly = !firstSeasonOnly)}
+          >
+            {#if firstSeasonOnly}
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+            {/if}
+            First seasons only
+          </button>
+        {/if}
       </div>
 
       <OptionGroup
