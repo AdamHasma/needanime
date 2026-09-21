@@ -8,6 +8,7 @@
     {#each options as option (option.value)}
       <button
         type="button"
+        title={option.hint}
         aria-pressed={selected === option.value}
         class="min-w-32 rounded-lg px-5 py-3 font-semibold transition-colors duration-200
           {selected === option.value

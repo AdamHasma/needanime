@@ -1,5 +1,10 @@
 <script>
-  import { coverUrl, fetchBookDescription, toTenScale } from "../lib/openlibrary.js";
+  import {
+    coverUrl,
+    fetchBookDescription,
+    matchedSubjects,
+    toTenScale,
+  } from "../lib/openlibrary.js";
 
   let { book } = $props();
 
@@ -21,6 +26,7 @@
   };
 
   const author = $derived(book.author_name?.[0] ?? "Unknown author");
+  const subjects = $derived(matchedSubjects(book));
   const score = $derived(
     book.ratings_average ? toTenScale(book.ratings_average) : null
   );
@@ -84,9 +90,9 @@
     </span>
   </div>
 
-  {#if book.subject?.length > 0}
+  {#if subjects.length > 0}
     <div class="flex flex-wrap gap-1 p-3 pb-0">
-      {#each book.subject.slice(0, 4) as subject (subject)}
+      {#each subjects.slice(0, 5) as subject (subject)}
         <span class="rounded border border-line px-1.5 py-0.5 text-xs text-text-muted">
           {subject}
         </span>

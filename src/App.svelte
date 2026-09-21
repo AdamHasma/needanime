@@ -7,6 +7,7 @@
     tags,
   } from "./lib/anilist.js";
   import {
+    bookLengthOptions,
     bookSearchUrl,
     bookSortOptions,
     bookSubjects,
@@ -191,6 +192,15 @@
   // selected anime type
   let selectedAnimeType = $state("tv");
 
+  // how thick the book is, books only — open library reports a median page
+  // count for most well-read entries
+  let selectedLength = $state("");
+
+  // clicking the selected length again removes it
+  const setLength = (value) => {
+    selectedLength = selectedLength === value ? "" : value;
+  };
+
   // release year range; an empty "to" means no upper bound
   let fromYear = $state("1980");
   let toYear = $state("");
@@ -269,6 +279,7 @@
     clickedExcludeTagBtn = false;
     selectedSortBtn = "";
     selectedStatus = "";
+    selectedLength = "";
     firstSeasonOnly = false;
     // open library reaches back to the 19th century, anilist doesn't
     fromYear = value === "BOOKS" ? "" : "1980";
@@ -298,6 +309,7 @@
       (selectedStatus ? 1 : 0) +
       (selectedSortBtn ? 1 : 0) +
       (firstSeasonOnly ? 1 : 0) +
+      (selectedLength ? 1 : 0) +
       ((isBooksView ? fromYear !== "" : fromYear !== "1980") || toYear !== ""
         ? 1
         : 0)
@@ -421,6 +433,7 @@
             excludeSubjects: selectedExcludeGenres,
             fromYear,
             toYear,
+            length: selectedLength,
             sort: selectedSortBtn || "readinglog",
             page: apiPage,
             perPage,
@@ -605,6 +618,15 @@
             First seasons only
           </button>
         </div>
+      {/if}
+
+      {#if isBooksView}
+        <OptionGroup
+          title="How long?"
+          options={bookLengthOptions}
+          selected={selectedLength}
+          onSelect={setLength}
+        />
       {/if}
 
       <OptionGroup
