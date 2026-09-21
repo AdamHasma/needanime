@@ -177,6 +177,7 @@
     mainNovelsOnly = false;
     notAdaptedOnly = false;
     selectedLength = "";
+    pageCursors = [1];
     currentPage = 1;
     if (isTrendingView) loadTrending();
   };
@@ -291,6 +292,24 @@
           ))
     );
 
+  // the relation filters run client-side, so one api page can shrink to a
+  // couple of entries — fetchAnime keeps pulling pages until the grid is
+  // full, capped so a very narrow filter can't fire off a dozen requests
+  const perPage = 25;
+  const maxApiPages = 6;
+
+  const applyClientFilters = (media) => {
+    let result = media;
+    if (firstSeasonOnly) result = result.filter((m) => !hasSeriesPrequel(m));
+    if (mainNovelsOnly) result = result.filter((m) => !isSideStory(m));
+    if (notAdaptedOnly) result = result.filter((m) => !hasAnimeAdaptation(m));
+    return result;
+  };
+
+  // api page each results page starts at — built up as the user pages
+  // forward, since a results page no longer maps to a single api page
+  let pageCursors = [1];
+
   // is loading variable
   let isLoading = $state(false);
 
@@ -342,8 +361,7 @@
     ];
 
     const variables = {
-      page: currentPage,
-      perPage: 25,
+      perPage,
       type: mediaType,
       format: isNovelMode ? "NOVEL" : selectedAnimeType.toUpperCase(),
       sort: [selectedSortBtn || "POPULARITY_DESC"],
@@ -376,26 +394,38 @@
       apiError = false;
       noResults = true;
       scrollToResults();
-      const res = await fetchWithRetry("https://graphql.anilist.co", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({ query: animeQuery, variables }),
-      });
-      const response = await res.json();
-      if (response.errors) {
-        throw new Error(`AniList API error: ${response.errors[0].message}`);
+      // apiPage always points at the first page not consumed yet
+      let apiPage = pageCursors[currentPage - 1] ?? currentPage;
+      let collected = [];
+      let hasNextPage = false;
+
+      for (let i = 0; i < maxApiPages; i++) {
+        const res = await fetchWithRetry("https://graphql.anilist.co", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({
+            query: animeQuery,
+            variables: { ...variables, page: apiPage },
+          }),
+        });
+        const response = await res.json();
+        if (response.errors) {
+          throw new Error(`AniList API error: ${response.errors[0].message}`);
+        }
+        collected.push(...applyClientFilters(response.data.Page.media));
+        hasNextPage = response.data.Page.pageInfo.hasNextPage;
+        apiPage++;
+        if (!hasNextPage || collected.length >= perPage) break;
       }
-      // AniList has no server-side filters for relations, so these drop
-      // entries client-side (pages may end up smaller)
-      let media = response.data.Page.media;
-      if (firstSeasonOnly) media = media.filter((m) => !hasSeriesPrequel(m));
-      if (mainNovelsOnly) media = media.filter((m) => !isSideStory(m));
-      if (notAdaptedOnly) media = media.filter((m) => !hasAnimeAdaptation(m));
-      animeData = media;
-      paginationData = response.data.Page.pageInfo;
+
+      animeData = collected;
+      // whole api pages are consumed, so the next results page just starts
+      // where this one stopped
+      pageCursors[currentPage] = apiPage;
+      paginationData = { currentPage, hasNextPage };
       isLoading = false;
     } catch (error) {
       isLoading = false;
@@ -409,6 +439,7 @@
   // sticky CTA always starts a fresh search on page 1
   const showResults = () => {
     isTrendingView = false;
+    pageCursors = [1];
     currentPage = 1;
     fetchAnime();
   };
